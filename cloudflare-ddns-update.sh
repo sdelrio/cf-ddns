@@ -29,7 +29,7 @@
 
 get_ip() {
   # Get external IP address
-  curl -s -X GET https://checkip.amazonaws.com
+  curl -s -X GET https://checkip.amazonaws.com || { echo "[ERROR] could not get result from checkip.amazonaws.com" && exit -1; }
 }
 
 update_ip_dns() {
@@ -59,10 +59,12 @@ update_ip_dns() {
 domain_changed_ip() {
   myip=$1
   mydomain=$2
-
-  if host $mydomain lex.ns.cloudflare.com | grep "has address" | grep "$myip"; then
+  myhostname=$(host -N 1 $mydomain lex.ns.cloudflare.com | grep "has address" )
+  if echo $myhostname | grep "$myip"; then
     echo "$mydomain already set to $myip; no changes needed"
   else
+    echo -n "domain $2: "
+    echo $myhostname
     echo "$mydomain currently not set to $myip; changes needed"
     update_ip_dns $myip $mydomain
   fi
@@ -72,9 +74,10 @@ domain_changed_ip() {
 # MAIN
 
 ip=$(get_ip)
+[ -z $ip ] && echo "[ERROR] Got empty external IP address" && exit -1
 
-echo "Current IP: $ip"
-echo -n "DNS names detected: "
+echo "[INFO] Current IP: $ip"
+echo -n "[INFO] DNS names detected: "
 echo $CF_DNS_RECORDS |tr , ' '
 
 for d in $(echo $CF_DNS_RECORDS | tr , ' '); do
