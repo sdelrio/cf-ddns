@@ -18,12 +18,16 @@
 
 # Cloudflare zone is the zone which holds the record
 [ -z $CF_ZONE ] && echo "[error] CF_ZONE not defined." && exit 1
+# Remove trailing  newline
+CF_ZONE=${CF_ZONE%$'\n'}
 
 # DNS record is the A record which will be updated
 [ -z $CF_DNS_RECORDS ] && echo "[error] CF_DNS_RECORDS not defined." && exit 1
+CF_CNDS_RECORDS=${DNS_RECORDS%$'\n'}
 
 # Cloudflare authentication API Token
 [ -z $CF_TOKEN ] && echo "[error] CF_TOKEN not defined." && exit 1
+CF_TOKEN=${CF_TOKEN%$'\n'}
 
 # FUNCTIONS
 
@@ -66,8 +70,8 @@ domain_changed_ip() {
   if echo $myhostname | grep "$myip"; then
     echo "[DEBUG] $2 already set to $myip; no changes needed"
   else
-    echo -n "[DEBUG] Domain $2: "
-    echo "[DEBUG] $myhostname"
+    echo "[DEBUG] Domain: $2: "
+    echo "[DEBUG] Domain resolved: $myhostname"
     echo "[DEBUG] $2 currently not set to $myip; changes needed"
     update_ip_dns $myip $2
   fi
