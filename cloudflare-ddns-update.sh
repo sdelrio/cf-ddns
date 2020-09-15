@@ -36,18 +36,19 @@ update_ip_dns() {
   ip=$1
   dnsrecord=$2
 
+  echo "[DEBUG] Getting Zoneid for $CF_ZONE"
   zoneid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$CF_ZONE&status=active" \
   -H "Authorization: Bearer $CF_TOKEN" \
   -H "Content-Type: application/json" | jq -r '{"result"}[] | .[0] | .id')
 
-  echo "Zoneid for $CF_ZONE is $zoneid"
+  echo "[DEBUG] Zoneid for $CF_ZONE is $zoneid"
 
   # Get the DNS record id
   dnsrecordid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records?type=A&name=$dnsrecord" \
   -H "Authorization: Bearer $CF_TOKEN" \
   -H "Content-Type: application/json" | jq -r '{"result"}[] | .[0] | .id')
 
-  echo "DNS Record ID for $dnsrecord is $dnsrecordid"
+  echo "[DEBUG] DNS Record ID for $dnsrecord is $dnsrecordid"
 
   # Update the DNS A record
   curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records/$dnsrecordid" \
@@ -58,15 +59,17 @@ update_ip_dns() {
 
 domain_changed_ip() {
   myip=$1
-  mydomain=$2
+  mydomain=$(echo $2 | sed 's/^*/anything/')
+#  mydomain=$2
+
   myhostname=$(host -N 1 $mydomain lex.ns.cloudflare.com | grep "has address" )
   if echo $myhostname | grep "$myip"; then
-    echo "$mydomain already set to $myip; no changes needed"
+    echo "[DEBUG] $2 already set to $myip; no changes needed"
   else
-    echo -n "domain $2: "
-    echo $myhostname
-    echo "$mydomain currently not set to $myip; changes needed"
-    update_ip_dns $myip $mydomain
+    echo -n "[DEBUG] Domain $2: "
+    echo "[DEBUG] $myhostname"
+    echo "[DEBUG] $2 currently not set to $myip; changes needed"
+    update_ip_dns $myip $2
   fi
   
 }
@@ -81,6 +84,7 @@ echo -n "[INFO] DNS names detected: "
 echo $CF_DNS_RECORDS |tr , ' '
 
 for d in $(echo $CF_DNS_RECORDS | tr , ' '); do
+  echo "[INFO] Check domain $d for IP $ip"
   domain_changed_ip $ip $d
 done
 
